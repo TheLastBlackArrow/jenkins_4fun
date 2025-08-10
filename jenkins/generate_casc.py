@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import sys
-import os
 from jinja2 import Environment, FileSystemLoader
 
 args = sys.argv[1:]

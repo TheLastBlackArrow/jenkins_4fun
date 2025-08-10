@@ -1,12 +1,16 @@
 FROM jenkins/ssh-agent:latest-jdk21
 
-
-# install python3, pip, pipx, uv, git, and git-lfs
+# install python3, git, and uv only
 RUN apt-get update && \
-    apt-get install -y python3 python3-pip pipx git git-lfs && \
-    pipx ensurepath && \
-    pipx install uv
+    apt-get install -y python3 git curl && \
+    curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# install all python packages for machine learning using uv (via pipx)
+# add uv to PATH
 ENV PATH="/root/.local/bin:$PATH"
-RUN uv pip install --system numpy pandas scikit-learn tensorflow keras matplotlib seaborn
+
+# copy requirements file and install with uv in a venv
+COPY requirements.uv.txt /requirements.uv.txt
+RUN uv venv /opt/uv-venv \
+    && uv pip install --python /opt/uv-venv/bin/python -r /requirements.uv.txt
+ENV PATH="/opt/uv-venv/bin:$PATH"
+
