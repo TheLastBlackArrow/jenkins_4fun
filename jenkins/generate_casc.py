@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 import sys
-import os
 from jinja2 import Environment, FileSystemLoader
 
 args = sys.argv[1:]
+if len(args) == 0 or len(args) % 2 != 0:
+    print(
+        "Usage: generate_casc.py <agent1-name> ... <agentN-name> <agent1-ip> ... <agentN-ip>",
+        file=sys.stderr
+    )
+    sys.exit(1)
+
 num_agents = len(args) // 2
 agent_names = args[:num_agents]
 agent_ips = args[num_agents:]
@@ -15,7 +21,7 @@ template = env.get_template('casc.yaml')
 
 rendered = template.render(agents=agents)
 
-with open('jenkins/casc.generated.yaml', 'w') as f:
+with open('jenkins/casc.generated.yaml', mode='w', encoding='utf-8') as f:
     f.write(rendered)
 
 print(f"Rendered jenkins/casc.generated.yaml for {num_agents} agents.")

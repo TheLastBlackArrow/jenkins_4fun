@@ -15,8 +15,8 @@ services:
     volumes:
       - jenkins_home:/var/jenkins_home
     environment:
-      - JENKINS_ADMIN_ID=admin
-      - JENKINS_ADMIN_PASSWORD=admin
+      - JENKINS_ADMIN_ID=${JENKINS_ADMIN_ID:-admin}
+      - JENKINS_ADMIN_PASSWORD=${JENKINS_ADMIN_PASSWORD:-admin}
       - JENKINS_URL=http://localhost:8080/${JENKINS_CONTROLLER_PREFIX}
       - JENKINS_OPTS="--prefix=/${JENKINS_CONTROLLER_PREFIX}"
       - JENKINS_SSH_PRIVATE_KEY=${JENKINS_SSH_PRIVATE_KEY}

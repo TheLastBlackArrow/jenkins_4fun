@@ -1,0 +1,10 @@
+# uv requirements file for Jenkins agent ML environment
+numpy
+pandas
+scikit-learn
+tensorflow
+keras
+matplotlib
+seaborn
+jinja2
+markupsafe

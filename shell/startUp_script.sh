@@ -1,7 +1,25 @@
 #!/bin/bash
 
+# Check if uv is installed, if not, install it automatically
+if ! command -v uv >/dev/null 2>&1; then
+  echo "[INFO] 'uv' is not installed. Installing..."
+  curl -Ls https://astral.sh/uv/install.sh | sh
+  # Add ~/.local/bin to PATH for this session if not already present
+  if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
+    export PATH="$HOME/.local/bin:$PATH"
+    echo "[INFO] Added $HOME/.local/bin to PATH for this session."
+  fi
+  # Check again
+  if ! command -v uv >/dev/null 2>&1; then
+    echo "[ERROR] 'uv' installation failed. Please install it manually."
+    exit 1
+  fi
+fi
+#!/bin/bash
+
 # Ask user for number of Jenkins agents
-read -p "Enter the number of Jenkins agents to create: " AGENT_COUNT
+echo -n "Enter the number of Jenkins agents to create: "
+read AGENT_COUNT
 
 # Generate SSH key (ed25519) in a temporary location on the host
 TMP_KEY_DIR=$(mktemp -d)
@@ -21,20 +39,27 @@ docker compose up jenkins-agent --build -d --scale jenkins-agent=$AGENT_COUNT
 # Wait for agents to be up and collect their IPs
 AGENT_NAMES=()
 AGENT_IPS=()
-AGENT_CONTAINERS=$(docker compose ps -q jenkins-agent)
-for CONTAINER_ID in $AGENT_CONTAINERS; do
+while read -r CONTAINER_ID; do
+  for attempt in {1..20}; do
+    STATUS=$(docker inspect -f '{{.State.Status}}' $CONTAINER_ID 2>/dev/null)
+    if [[ "$STATUS" == "running" ]]; then
+      break
+    fi
+    sleep 2
+  done
+  # Now proceed to get the name and IP as before
   AGENT_NAME=$(docker inspect --format '{{.Name}}' $CONTAINER_ID | sed 's|/||')
   AGENT_IP=""
-  for attempt in {1..10}; do
+  for attempt in {1..20}; do
     AGENT_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $CONTAINER_ID 2>/dev/null)
     if [[ -n "$AGENT_IP" ]]; then
       break
     fi
-    sleep 1
+    sleep 2
   done
   AGENT_NAMES+=("$AGENT_NAME")
   AGENT_IPS+=("$AGENT_IP")
-done
+done < <(docker compose ps -q jenkins-agent 2>/dev/null)
 
 # Generate casc.generated.yaml once with all agent names and IPs
 python3 jenkins/generate_casc.py "${AGENT_NAMES[@]}" "${AGENT_IPS[@]}"
